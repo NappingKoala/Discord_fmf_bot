@@ -98,7 +98,7 @@ def json_print():
         print("--------------------------------------------------------\n")
 
 
-def get_urnik(uni="MAT", smer="pra", let="1", dan=0):
+def get_urnik(uni="MAT", smer="pra", let="1", dan_=0):
     data = requests.get(get_link(uni, smer, let))
     soup = bs(data.content, 'lxml')
     soup = soup.find('div', class_="poravnaj-na-termine")
@@ -125,8 +125,9 @@ def get_urnik(uni="MAT", smer="pra", let="1", dan=0):
         predmet, pouk, ucilnica, profesor, dan, st_h, zac_h = parse_ura(el)
         tab_dni[dan].dodaj_uro(predmet, profesor, pouk, ucilnica, st_h, zac_h)
 
-    if dan == 0:
+    if dan_ == 0:
         for el in tab_dni:
             el.izpisi_dan()
     else:
-        tab_dni[dan-1].izpisi_dan()
+        tab_dni[dan_-1].izpisi_dan()
+
