@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup as bs
 from itertools import chain
 import requests
+import pprint
+import json
 import re
 
 
@@ -75,33 +77,56 @@ def parse_ura(data):
     
     return(predmet, pouk, ucilnica, profesor, dan, st_h, zac_h)
 
-data = requests.get("https://urnik.fmf.uni-lj.si/letnik/13/")
-soup = bs(data.content, 'lxml')
-soup = soup.find('div', class_="poravnaj-na-termine")
 
-all_classes = [
-    'srecanje-absolute-box leftmost', 
-    'srecanje-absolute-box rightmost',
-    'srecanje-absolute-box leftmost rightmost',
-    'srecanje-absolute-box',
-]
-
-class_tab = []
-for el in all_classes:
-    class_tab.append(soup.find_all('div', el))
-
-flatten_class = list(chain.from_iterable(class_tab))
-
-tab_dni = []
-for dan in ["PON", "TOR", "SRE", "CET", "PET"]:
-    tab_dni.append(Dan(dan))
+def get_link(uni, smer, let):
+    url = "https://urnik.fmf.uni-lj.si/letnik/"
+    with open("links.json", "r") as f:
+        data = json.load(f)
+    url_end = data[uni][smer][let]
+    return url + str(url_end) + '/'
 
 
-for el in flatten_class:
-    predmet, pouk, ucilnica, profesor, dan, st_h, zac_h = parse_ura(el)
-    tab_dni[dan].dodaj_uro(predmet, profesor, pouk, ucilnica, st_h, zac_h)
+def json_print():
+    with open("links.json", "r") as f:
+        data = json.load(f)
+        for uni in data:
+            print("--------------------------------------------------------\n")
+            print(uni)
+            for smer in data[uni]:
+                print('\t' + str(smer) + ':  \t' + " | ".join(data[uni][smer].keys()))
+                print("")
+        print("--------------------------------------------------------\n")
 
-for el in tab_dni:
-    el.izpisi_dan()
 
-     
+def get_urnik(uni="MAT", smer="pra", let="1", dan=0):
+    data = requests.get(get_link(uni, smer, let))
+    soup = bs(data.content, 'lxml')
+    soup = soup.find('div', class_="poravnaj-na-termine")
+
+    all_classes = [
+        'srecanje-absolute-box leftmost', 
+        'srecanje-absolute-box rightmost',
+        'srecanje-absolute-box leftmost rightmost',
+        'srecanje-absolute-box',
+    ]
+
+    class_tab = []
+    for el in all_classes:
+        class_tab.append(soup.find_all('div', el))
+
+    flatten_class = list(chain.from_iterable(class_tab))
+
+    tab_dni = []
+    for dan in ["PON", "TOR", "SRE", "CET", "PET"]:
+        tab_dni.append(Dan(dan))
+
+
+    for el in flatten_class:
+        predmet, pouk, ucilnica, profesor, dan, st_h, zac_h = parse_ura(el)
+        tab_dni[dan].dodaj_uro(predmet, profesor, pouk, ucilnica, st_h, zac_h)
+
+    if dan == 0:
+        for el in tab_dni:
+            el.izpisi_dan()
+    else:
+        tab_dni[dan-1].izpisi_dan()
